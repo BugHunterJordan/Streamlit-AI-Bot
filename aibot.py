@@ -125,7 +125,7 @@ if "down" not in st.session_state:
 # SHOW LOGO
 # -----------------------------
 
-st.image("logo.png", caption="CIT 144 – Longshot Dynasty AI")
+st.image("logo.png", caption="Longshot Dynasty")
 
 
 # -----------------------------
