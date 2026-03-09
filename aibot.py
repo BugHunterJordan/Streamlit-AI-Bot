@@ -99,7 +99,7 @@ def calculate_yards(roll):
 
 st.set_page_config(page_title="AI Football Chat & Play", page_icon="🏈")
 
-st.title("AI Football Chat")
+st.title("AI Football Chat & Play")
 
 # -----------------------------
 # SESSION STATE
