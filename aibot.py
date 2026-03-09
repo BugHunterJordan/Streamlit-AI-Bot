@@ -51,7 +51,7 @@ def response_generator():
 
     response = ai_ask(
         "You are a friendly football AI assistant. "
-        "Help the user with fantasy football or chat normally.",
+        "Help the user with football or chat normally.",
         data=st.session_state.messages,
         api_key=st.secrets["apikey"]
     )
@@ -97,7 +97,7 @@ def calculate_yards(roll):
 # PAGE SETTINGS
 # -----------------------------
 
-st.set_page_config(page_title="AI Football Chat", page_icon="🏈")
+st.set_page_config(page_title="AI Football Chat & Play", page_icon="🏈")
 
 st.title("AI Football Chat")
 
