@@ -3,15 +3,13 @@ import random
 import time
 import requests
 import json
+import base64
 
 # -----------------------------
 # AI API FUNCTION
 # -----------------------------
 
 def ai_ask(prompt, data=None, temperature=0.5, max_tokens=250, model="mistral-small-latest", api_key=None, api_url="https://api.mistral.ai/v1/chat/completions"):
-
-    if api_key is None or api_url is None:
-        return "API key missing."
 
     message = prompt
 
@@ -44,14 +42,13 @@ def ai_ask(prompt, data=None, temperature=0.5, max_tokens=250, model="mistral-sm
 
 
 # -----------------------------
-# STREAMING RESPONSE
+# STREAM RESPONSE
 # -----------------------------
 
 def response_generator():
 
     response = ai_ask(
-        "You are a friendly football AI assistant. "
-        "Help the user with fantasy football or chat normally.",
+        "You are a friendly football AI assistant that can also host a dice football game called Longshot Dynasty.",
         data=st.session_state.messages,
         api_key=st.secrets["apikey"]
     )
@@ -62,15 +59,61 @@ def response_generator():
 
 
 # -----------------------------
-# DICE GAME FUNCTIONS
+# LOAD IMAGE AS BASE64
+# -----------------------------
+
+def load_image_base64(path):
+    with open(path, "rb") as img:
+        return base64.b64encode(img.read()).decode()
+
+
+field_base64 = load_image_base64("field.png")
+avatar_base64 = load_image_base64("avatar.png")
+
+
+# -----------------------------
+# DRAW FIELD
+# -----------------------------
+
+def draw_field(yard_line):
+
+    position_percent = yard_line
+
+    field_html = f"""
+    <div style="position: relative; width: 900px; margin:auto;">
+
+        <img src="data:image/png;base64,{field_base64}" style="width:100%;">
+
+        <img src="data:image/png;base64,{avatar_base64}"
+        style="
+        position:absolute;
+        bottom:35px;
+        left:{position_percent}%;
+        transform:translateX(-50%);
+        width:40px;
+        ">
+    </div>
+    """
+
+    st.markdown(field_html, unsafe_allow_html=True)
+
+
+# -----------------------------
+# GAME FUNCTIONS
 # -----------------------------
 
 def roll_dice():
 
-    user_roll = random.randint(1,6) + random.randint(1,6)
-    ai_roll = random.randint(1,6) + random.randint(1,6)
+    d1 = random.randint(1,6)
+    d2 = random.randint(1,6)
 
-    return user_roll, ai_roll
+    a1 = random.randint(1,6)
+    a2 = random.randint(1,6)
+
+    user_total = d1 + d2
+    ai_total = a1 + a2
+
+    return d1, d2, user_total, a1, a2, ai_total
 
 
 def calculate_yards(roll):
@@ -94,12 +137,13 @@ def calculate_yards(roll):
 
 
 # -----------------------------
-# PAGE SETTINGS
+# PAGE SETUP
 # -----------------------------
 
 st.set_page_config(page_title="AI Football Chat", page_icon="🏈")
 
 st.title("AI Football Chat")
+
 
 # -----------------------------
 # SESSION STATE
@@ -122,14 +166,14 @@ if "down" not in st.session_state:
 
 
 # -----------------------------
-# SHOW LOGO
+# LOGO
 # -----------------------------
 
 st.image("logo.png", caption="CIT 144 – Longshot Dynasty AI")
 
 
 # -----------------------------
-# DISPLAY CHAT HISTORY
+# CHAT HISTORY
 # -----------------------------
 
 for message in st.session_state.messages:
@@ -160,41 +204,41 @@ if prompt := st.chat_input("Ask the AI or type //roll to play Longshot Dynasty")
         with st.chat_message("assistant"):
             st.markdown("""
 
-### 🏈 Welcome to Longshot Dynasty!
+### 🏈 Welcome to Longshot Dynasty
 
-You are the offense and the AI controls the defense.
+You are on offense and the AI controls the defense.
 
-Your drive starts on the **25 yard line**, and your goal is to move the ball **75 yards for a touchdown.**
+You begin on your **25 yard line** and must drive **75 yards to score a touchdown**.
 
 ### Rules
 
 • You have **4 downs to gain 10 yards**  
-• If you gain 10 yards, you earn a **new first down**  
-• If you fail to gain 10 yards in 4 plays, the drive ends  
+• Gaining 10 yards resets the downs  
+• Fail to gain 10 yards in 4 plays and the drive ends  
 
 ### How to Play
 
 Type **//roll** to roll the dice.
 
-Both you and the AI will roll **two six-sided dice**.
+Both you and the defense roll **two six-sided dice**.
 
-If your total is higher than the AI's roll, you gain yards based on your roll.
+If your roll beats the defense, you gain yards based on the result.
 
 ### Special Plays
 
-**12** → Automatic Touchdown  
-**2** → Interception (Game Over)
+**12 → Automatic Touchdown**  
+**2 → Interception**
 
 ### Defensive Big Plays
 
-AI rolls **12** → Pick Six  
-AI rolls **11** → Sack (−10 yards)  
-AI rolls **10** → Swatted Pass (No Gain)
-
-Good luck!
+Defense rolls **12 → Pick Six**  
+Defense rolls **11 → Sack (-10 yards)**  
+Defense rolls **10 → Swatted Pass**
 
 Type **//roll** again to run your first play.
 """)
+
+        draw_field(st.session_state.yard_line)
 
         st.stop()
 
@@ -205,43 +249,39 @@ Type **//roll** again to run your first play.
 
     if prompt == "//roll" and st.session_state.game_mode:
 
-        user_roll, ai_roll = roll_dice()
+        d1, d2, user_roll, a1, a2, ai_roll = roll_dice()
 
         with st.chat_message("assistant"):
 
-            st.write(f"You rolled **{user_roll}**")
-            st.write(f"Defense rolled **{ai_roll}**")
+            st.write(f"You rolled **{d1} & {d2} → {user_roll}**")
+            st.write(f"Defense rolled **{a1} & {a2} → {ai_roll}**")
 
-            # USER AUTO TD
+            # USER TOUCHDOWN
             if user_roll == 12:
-
                 st.write("🏈 **TOUCHDOWN! You win!**")
+                draw_field(100)
                 st.session_state.game_mode = False
                 st.stop()
 
             # USER INTERCEPTION
             if user_roll == 2:
-
                 st.write("❌ **Interception! Game Over.**")
                 st.session_state.game_mode = False
                 st.stop()
 
-            # DEFENSE PICK SIX
+            # PICK SIX
             if ai_roll == 12 and user_roll != 12:
-
-                st.write("💥 **Pick Six! Defense scores! You lose.**")
+                st.write("💥 **Pick Six! Defense wins.**")
                 st.session_state.game_mode = False
                 st.stop()
 
             # SACK
             if ai_roll == 11 and user_roll != 12:
-
                 st.write("🛑 Sack! You lose 10 yards.")
                 st.session_state.yard_line -= 10
 
             # SWAT
             elif ai_roll == 10 and user_roll not in [11,12]:
-
                 st.write("🖐 Swatted pass! No gain.")
 
             # USER WINS PLAY
@@ -255,36 +295,36 @@ Type **//roll** again to run your first play.
                 st.write(f"📈 You gained **{yards} yards!**")
 
             else:
-
                 st.write("No gain on the play.")
 
             # FIRST DOWN
             if st.session_state.yards_to_go <= 0:
 
                 st.write("✅ **First Down!**")
+
                 st.session_state.down = 1
                 st.session_state.yards_to_go = 10
 
             else:
-
                 st.session_state.down += 1
 
             # TOUCHDOWN CHECK
             if st.session_state.yard_line >= 100:
-
                 st.write("🏈 **Touchdown! You win the game!**")
+                draw_field(100)
                 st.session_state.game_mode = False
                 st.stop()
 
             # TURNOVER ON DOWNS
             if st.session_state.down > 4:
-
                 st.write("❌ **Turnover on downs! Drive failed.**")
                 st.session_state.game_mode = False
                 st.stop()
 
             st.write(f"Ball on the **{st.session_state.yard_line} yard line**")
-            st.write(f"Down **{st.session_state.down}** & **{st.session_state.yards_to_go}**")
+            st.write(f"Down **{st.session_state.down} & {st.session_state.yards_to_go}**")
+
+            draw_field(st.session_state.yard_line)
 
         st.stop()
 
@@ -296,7 +336,6 @@ Type **//roll** again to run your first play.
     if not st.session_state.game_mode:
 
         with st.chat_message("assistant"):
-
             response = st.write_stream(response_generator())
 
         st.session_state.messages.append({"role": "assistant", "content": response})
