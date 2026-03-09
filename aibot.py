@@ -75,28 +75,39 @@ avatar_base64 = load_image_base64("avatar.png")
 # DRAW FIELD
 # -----------------------------
 
+# -----------------------------
+# DRAW FIELD (simpler method)
+# -----------------------------
+
+from PIL import Image
+
+field_image = Image.open("field.png")
+avatar_image = Image.open("avatar.png")
+
 def draw_field(yard_line):
-
-    position_percent = yard_line
-
-    field_html = f"""
-    <div style="position: relative; width: 900px; margin:auto;">
-
-        <img src="data:image/png;base64,{field_base64}" style="width:100%;">
-
-        <img src="data:image/png;base64,{avatar_base64}"
-        style="
-        position:absolute;
-        bottom:35px;
-        left:{position_percent}%;
-        transform:translateX(-50%);
-        width:40px;
-        ">
-    </div>
     """
+    Draws the football field and avatar at the given yard line.
+    - yard_line: 0-100
+    """
+    st.image(field_image, use_column_width=True)
 
-    st.markdown(field_html, unsafe_allow_html=True)
+    # approximate avatar position by yard line percentage
+    field_width = 900  # width in px to estimate position
+    avatar_x = int((yard_line / 100) * field_width)
 
+    st.markdown(
+        f"""
+        <div style="position: relative; width:100%;">
+            <img src="avatar.png" style="
+                position:relative;
+                left:{yard_line}%;
+                width:40px;
+                margin-top:-60px;
+            ">
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
 # -----------------------------
 # GAME FUNCTIONS
