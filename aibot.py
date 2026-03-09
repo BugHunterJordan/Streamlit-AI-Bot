@@ -72,7 +72,7 @@ def response_generator():
         yield word + " "
         time.sleep(0.05)
 
-st.title("Jordan Pangrazzi's AI chat")
+st.title("AI Football Chat")
 
 # Initialize chat history
 if "messages" not in st.session_state:
@@ -80,7 +80,7 @@ if "messages" not in st.session_state:
 
 # Show the dashboard image once at the top
 with st.chat_message("assistant"):
-    st.image("PowerBIDashboard.png", caption="CIT 144 – Demographics Data Visualization")
+    st.image("logo.png", caption="CIT 144 – LSD")
 
 # Display chat messages from history on app rerun
 for message in st.session_state.messages:
