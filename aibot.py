@@ -1,20 +1,36 @@
 import streamlit as st
 import random
-import time
-import requests
-import json
 
 st.set_page_config(page_title="Longshot Dynasty", page_icon="🏈")
 
 st.title("🏈 Longshot Dynasty")
 
 # -----------------------------
-# FIELD VISUALIZATION
+# SESSION STATE
 # -----------------------------
 
-def draw_field(yard_line):
+if "game_started" not in st.session_state:
+    st.session_state.game_started = False
 
-    yard = max(0, min(100, yard_line))
+if "yard_line" not in st.session_state:
+    st.session_state.yard_line = 25
+
+if "yards_to_go" not in st.session_state:
+    st.session_state.yards_to_go = 10
+
+if "down" not in st.session_state:
+    st.session_state.down = 1
+
+if "log" not in st.session_state:
+    st.session_state.log = []
+
+# -----------------------------
+# FOOTBALL FIELD
+# -----------------------------
+
+def draw_field(yard):
+
+    yard = max(0, min(100, yard))
 
     st.markdown(
         f"""
@@ -22,21 +38,32 @@ def draw_field(yard_line):
         position:relative;
         width:100%;
         height:120px;
-        background:#1e7f3f;
-        border:4px solid white;
+        background:#2f8f46;
         border-radius:12px;
+        border:4px solid white;
         overflow:hidden;
         ">
 
         <div style="
         position:absolute;
         left:{yard}%;
-        top:45%;
+        top:50%;
         transform:translate(-50%,-50%);
         font-size:36px;
-        transition:left 0.7s ease;
+        transition:left 0.8s ease;
         ">
         🏈
+        </div>
+
+        <div style="
+        position:absolute;
+        bottom:5px;
+        width:100%;
+        text-align:center;
+        color:white;
+        font-size:12px;
+        ">
+        0&nbsp;&nbsp;10&nbsp;&nbsp;20&nbsp;&nbsp;30&nbsp;&nbsp;40&nbsp;&nbsp;50&nbsp;&nbsp;40&nbsp;&nbsp;30&nbsp;&nbsp;20&nbsp;&nbsp;10&nbsp;&nbsp;100
         </div>
 
         </div>
@@ -45,189 +72,138 @@ def draw_field(yard_line):
     )
 
 # -----------------------------
-# AI COMMENTATOR
+# COMMENTATOR
 # -----------------------------
 
-def commentator(play_result, yards):
+def commentator(text):
 
     lines = [
-        f"The offense runs the play... {play_result}",
-        f"The quarterback drops back... {play_result}",
-        f"The crowd watches closely... {play_result}",
-        f"The offense attacks the defense... {play_result}",
+        f"The offense snaps the ball... {text}",
+        f"The quarterback reads the defense... {text}",
+        f"The crowd holds their breath... {text}",
+        f"The offense attacks... {text}",
     ]
 
     return random.choice(lines)
 
 # -----------------------------
-# DICE FUNCTIONS
+# DICE
 # -----------------------------
 
 def roll_dice():
 
-    p1=random.randint(1,6)
-    p2=random.randint(1,6)
+    player = random.randint(1,6) + random.randint(1,6)
+    defense = random.randint(1,6) + random.randint(1,6)
 
-    a1=random.randint(1,6)
-    a2=random.randint(1,6)
+    return player, defense
 
-    return [p1,p2],p1+p2,[a1,a2],a1+a2
+# -----------------------------
+# YARD TABLE
+# -----------------------------
 
+def yards_from_roll(roll):
 
-def calculate_yards(roll):
+    table = {
+        7:[1,2,3,4,5],
+        6:[4,5,6,7,8],
+        8:[4,5,6,7,8],
+        5:[6,7,8,9,10],
+        9:[6,7,8,9,10],
+        4:[8,9,10,11,12],
+        10:[8,9,10,11,12],
+        3:[15,20,25,30,40],
+        11:[15,20,25,30,40]
+    }
 
-    if roll==7: return random.choice([1,2,3,4,5])
-    if roll in [6,8]: return random.choice([4,5,6,7,8])
-    if roll in [5,9]: return random.choice([6,7,8,9,10])
-    if roll in [4,10]: return random.choice([8,9,10,11,12])
-    if roll in [3,11]: return random.choice([15,20,25,30,40])
+    if roll in table:
+        return random.choice(table[roll])
 
     return 0
 
 # -----------------------------
-# SESSION STATE
+# GAME RESET
 # -----------------------------
 
-if "messages" not in st.session_state:
-    st.session_state.messages=[]
+def reset_game():
 
-if "game_mode" not in st.session_state:
-    st.session_state.game_mode=False
-
-if "yard_line" not in st.session_state:
-    st.session_state.yard_line=25
-
-if "yards_to_go" not in st.session_state:
-    st.session_state.yards_to_go=10
-
-if "down" not in st.session_state:
-    st.session_state.down=1
-
+    st.session_state.game_started = False
+    st.session_state.yard_line = 25
+    st.session_state.yards_to_go = 10
+    st.session_state.down = 1
 
 # -----------------------------
-# DISPLAY CHAT
-# -----------------------------
-
-for message in st.session_state.messages:
-
-    with st.chat_message(message["role"]):
-
-        st.markdown(message["content"])
-
-
-# -----------------------------
-# GAME PLAY
+# RUN PLAY
 # -----------------------------
 
 def run_play():
 
-    player_dice,user_roll,ai_dice,ai_roll=roll_dice()
+    player, defense = roll_dice()
 
-    yards_gained=0
+    yards = 0
+    result = "No gain"
 
-    if user_roll>ai_roll and ai_roll not in [10,11,12]:
+    if player > defense and defense not in [10,11,12]:
 
-        yards_gained=calculate_yards(user_roll)
+        yards = yards_from_roll(player)
 
-        st.session_state.yard_line+=yards_gained
-        st.session_state.yards_to_go-=yards_gained
+        st.session_state.yard_line += yards
+        st.session_state.yards_to_go -= yards
 
-    elif ai_roll==11:
+        result = f"Gain of {yards} yards"
 
-        yards_gained=-10
-        st.session_state.yard_line-=10
+    elif defense == 11:
 
+        st.session_state.yard_line -= 10
+        result = "Sack! Lost 10 yards"
 
-    if user_roll==12 or st.session_state.yard_line>=100:
-        result=f"🏈 TOUCHDOWN! (+{yards_gained} yards)"
+    elif defense == 10:
 
-    elif user_roll==2:
-        result="❌ Interception!"
+        result = "Pass swatted"
 
-    elif ai_roll==12:
-        result="💥 Pick Six!"
+    elif defense == 12:
 
-    elif ai_roll==11:
-        result="🛑 Sack! Lost 10 yards."
+        result = "Pick Six!"
 
-    elif ai_roll==10:
-        result="🖐 Swatted pass!"
+    elif player == 2:
 
-    elif user_roll>ai_roll:
-        result=f"📈 Gain of {yards_gained} yards"
+        result = "Interception!"
 
-    else:
-        result="No gain"
+    if st.session_state.yards_to_go <= 0:
 
+        st.session_state.down = 1
+        st.session_state.yards_to_go = 10
 
-    if st.session_state.yards_to_go<=0:
-
-        st.session_state.down=1
-        st.session_state.yards_to_go=10
-
-        first_down="✅ First Down!"
+        result += " | First Down!"
 
     else:
 
-        st.session_state.down+=1
-        first_down=""
+        st.session_state.down += 1
 
+    play_call = commentator(result)
 
-    commentary=commentator(result,yards_gained)
+    st.session_state.log.append(
+        f"""
+**🎙 {play_call}**
 
-    with st.chat_message("assistant"):
+You rolled **{player}**
 
-        draw_field(st.session_state.yard_line)
+Defense rolled **{defense}**
 
-        st.markdown(f"""
-### 🎙 Commentary
-{commentary}
+📍 Ball on {st.session_state.yard_line}
 
----
+Down {st.session_state.down} & {st.session_state.yards_to_go}
+"""
+    )
 
-**{result}**
+    if st.session_state.yard_line >= 100:
 
-🏈 You rolled **{user_roll}**
-
-🛡 Defense rolled **{ai_roll}**
-
-📍 Ball on **{st.session_state.yard_line} yard line**
-
-**Down {st.session_state.down} & {st.session_state.yards_to_go}**
-""")
-
-        if first_down:
-            st.success(first_down)
-
-
-    if st.session_state.yard_line>=100:
-
-        st.balloons()
-
-        st.markdown(
-        "<h1 style='text-align:center;color:gold;'>🏆 TOUCHDOWN YOU WIN 🏆</h1>",
-        unsafe_allow_html=True
-        )
-
+        st.session_state.log.append("🏆 TOUCHDOWN! YOU WIN!")
         reset_game()
 
-    if st.session_state.down>4:
+    elif st.session_state.down > 4:
 
-        st.markdown(
-        "<h1 style='text-align:center;color:red;'>💀 TURNOVER ON DOWNS 💀</h1>",
-        unsafe_allow_html=True
-        )
-
+        st.session_state.log.append("💀 Turnover on downs!")
         reset_game()
-
-
-def reset_game():
-
-    st.session_state.game_mode=False
-    st.session_state.yard_line=25
-    st.session_state.yards_to_go=10
-    st.session_state.down=1
-
 
 # -----------------------------
 # START GAME
@@ -235,65 +211,81 @@ def reset_game():
 
 def start_game():
 
-    st.session_state.game_mode=True
+    st.session_state.game_started = True
 
-    with st.chat_message("assistant"):
-
-        st.markdown("""
+    st.session_state.log.append(
+"""
 ### Welcome to Longshot Dynasty
 
-Roll the dice to advance the ball.
+Roll the dice to move down the field.
 
-You must outroll the defense to gain yards.
+Outroll the defense to gain yards.
 
-Reach the endzone to win.
-
-Press **Roll 🎲** to start.
-""")
-
+Score a touchdown to win!
+"""
+)
 
 # -----------------------------
-# INPUT BAR (BOTTOM)
+# DISPLAY GAME
+# -----------------------------
+
+draw_field(st.session_state.yard_line)
+
+for entry in st.session_state.log:
+
+    st.markdown(entry)
+
+# -----------------------------
+# AUTO SCROLL
+# -----------------------------
+
+st.markdown(
+"""
+<script>
+window.scrollTo(0, document.body.scrollHeight);
+</script>
+""",
+unsafe_allow_html=True
+)
+
+# -----------------------------
+# INPUT
 # -----------------------------
 
 st.divider()
 
-col1,col2=st.columns([5,1])
+col1, col2 = st.columns([5,1])
 
 with col1:
-    prompt=st.text_input(
+    user_input = st.text_input(
         "Chat or Play",
-        placeholder="Ask something or press Roll...",
+        placeholder="Type 'roll' or press the roll button...",
         key="chatbox"
     )
 
 with col2:
-    roll_clicked=st.button("🎲 Roll",use_container_width=True)
-
-if roll_clicked:
-    prompt="roll"
-    st.session_state.chatbox=""
+    roll_clicked = st.button("🎲 Roll", use_container_width=True)
 
 # -----------------------------
 # HANDLE INPUT
 # -----------------------------
 
+prompt = None
+
+if roll_clicked:
+    prompt = "roll"
+
+elif user_input:
+    prompt = user_input.lower()
+
 if prompt:
 
-    prompt_clean=prompt.lower().strip()
+    if prompt == "roll":
 
-    if prompt_clean=="roll":
-
-        if not st.session_state.game_mode:
-
+        if not st.session_state.game_started:
             start_game()
-
         else:
-
             run_play()
 
     else:
-
-        with st.chat_message("assistant"):
-
-            st.write("I'm your football assistant! Type roll to play.")
+        st.session_state.log.append("Type **roll** to play the game.")
