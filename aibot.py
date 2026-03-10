@@ -130,6 +130,7 @@ if "game_mode" not in st.session_state: st.session_state.game_mode=False
 if "yard_line" not in st.session_state: st.session_state.yard_line=25
 if "yards_to_go" not in st.session_state: st.session_state.yards_to_go=10
 if "down" not in st.session_state: st.session_state.down=1
+if "roll_click" not in st.session_state: st.session_state.roll_click=False
 
 # -----------------------------
 # TITLE + LOGO
@@ -145,30 +146,37 @@ for m in st.session_state.messages:
         st.markdown(m["content"])
 
 # -----------------------------
-# FUNCTION FOR CLICKABLE ROLL BUTTON
+# FUNCTION FOR CLICKABLE ROLL BUTTON USING SESSION STATE
 # -----------------------------
 def roll_button():
     clicked = False
-    # HTML form button
-    button_html = """
-    <form action="" method="get">
-        <button type="submit" name="roll" value="1" style="all:unset;">
-            <img src="roll.png">
-        </button>
-    </form>
-    """
-    st.markdown(button_html, unsafe_allow_html=True)
-    query_params = st.experimental_get_query_params()
-    if "roll" in query_params:
+    # Render HTML button with image
+    st.markdown("""
+    <div class="roll-btn">
+        <form action="." method="post">
+            <button type="submit" name="roll" value="1" style="all:unset;">
+                <img src="roll.png">
+            </button>
+        </form>
+    </div>
+    """, unsafe_allow_html=True)
+    # Check session state
+    if st.session_state.roll_click:
         clicked = True
-        st.experimental_set_query_params()  # clear for next click
+        st.session_state.roll_click = False
     return clicked
 
 # -----------------------------
 # CHAT INPUT
 # -----------------------------
 prompt = st.chat_input("Ask the AI or type roll to play Longshot Dynasty")
-if roll_button():
+
+# Normal "roll" via button
+if st.button("roll"):
+    st.session_state.roll_click = True
+
+# If roll button clicked, treat as "roll"
+if st.session_state.roll_click or (prompt and prompt.strip().lower()=="roll"):
     prompt = "roll"
 
 # -----------------------------
@@ -241,9 +249,9 @@ Start on the **25 yard line**. Score a **touchdown**.
             # Display result
             st.markdown(f"🏈 You rolled: {ur}\n🛡 Defense rolled: {ar}\n📍 Ball: {display_yard_line(st.session_state.yard_line)}\nDown: {st.session_state.down} & {st.session_state.yards_to_go}")
 
-            # SHOW ROLL BUTTON AGAIN
+            # SHOW ROLL BUTTON AGAIN BELOW DOWN & DISTANCE
             if roll_button():
-                prompt = "roll"
+                st.session_state.roll_click = True
                 st.experimental_rerun()
 
     # NORMAL AI CHAT
