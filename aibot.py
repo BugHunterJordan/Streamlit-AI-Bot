@@ -92,12 +92,6 @@ def animate_dice(final_rolls, label, width=80, speed=0.1, frames=6):
 # FOOTBALL YARD LINE DISPLAY
 # -----------------------------
 def display_yard_line(yard_line):
-    """
-    Shows football-style yard line:
-    - 0 = your end zone, 100 = opponent end zone
-    - 1–50 = normal
-    - 51–99 = counts down
-    """
     if yard_line <= 50:
         return f"{yard_line} yard line"
     elif yard_line < 100:
@@ -146,11 +140,11 @@ for message in st.session_state.messages:
 # -----------------------------
 if prompt := st.chat_input("Ask the AI or type roll to play Longshot Dynasty"):
 
-    prompt_clean = prompt.strip().lower()
-
     with st.chat_message("user"):
         st.markdown(prompt)
     st.session_state.messages.append({"role": "user", "content": prompt})
+
+    prompt_clean = prompt.strip().lower()
 
     # -----------------------------
     # START GAME MODE
@@ -165,7 +159,7 @@ Your drive starts on the **25 yard line**, and your goal is to move the ball **7
 
 ### Rules
 • 4 downs to gain 10 yards  
-• First down resets after 10 yards  
+• If you gain 10 yards, you earn a **new first down**  
 • Fail to gain 10 yards in 4 plays → drive ends  
 
 Type **roll** to roll dice. Special rolls:
@@ -188,7 +182,9 @@ Defense rolls **12** → Pick Six, **11** → Sack, **10** → Swatted Pass
             st.write(f"📊 You rolled a total of **{user_roll}**")
             st.write(f"📊 Defense rolled a total of **{ai_roll}**")
 
-            # USER TOUCHDOWN
+            # -----------------------------
+            # USER TOUCHDOWN / VICTORY DISPLAY
+            # -----------------------------
             if user_roll == 12 or st.session_state.yard_line + calculate_yards(user_roll) >= 100:
                 st.session_state.game_mode = False
                 st.balloons()
@@ -239,6 +235,9 @@ Defense rolls **12** → Pick Six, **11** → Sack, **10** → Swatted Pass
                 st.session_state.game_mode = False
                 st.stop()
 
+            # -----------------------------
+            # DISPLAY FOOTBALL-STYLE YARD LINE
+            # -----------------------------
             st.write(f"Ball on the **{display_yard_line(st.session_state.yard_line)}**")
             st.write(f"Down **{st.session_state.down}** & **{st.session_state.yards_to_go}**")
 
