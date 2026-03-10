@@ -79,7 +79,6 @@ def calculate_yards(roll):
 def animate_dice(final_rolls, label, width=80, speed=0.1, frames=6):
     st.write(f"🎲 {label} rolled:")
     cols = st.columns(len(final_rolls))
-
     for i, final_value in enumerate(final_rolls):
         placeholder = cols[i].empty()
         for _ in range(frames):
@@ -92,10 +91,12 @@ def animate_dice(final_rolls, label, width=80, speed=0.1, frames=6):
 # FOOTBALL YARD LINE DISPLAY
 # -----------------------------
 def display_yard_line(yard_line):
-    if yard_line <= 50:
-        return f"{yard_line} yard line"
+    if yard_line < 50:
+        return f"your {yard_line} yard line"
+    elif yard_line == 50:
+        return "50 yard line"
     elif yard_line < 100:
-        return f"{100 - yard_line} yard line"
+        return f"opponent's {100 - yard_line} yard line"
     else:
         return "Touchdown!"
 
@@ -110,16 +111,12 @@ st.title("AI Football Chat & Play")
 # -----------------------------
 if "messages" not in st.session_state:
     st.session_state.messages = []
-
 if "game_mode" not in st.session_state:
     st.session_state.game_mode = False
-
 if "yard_line" not in st.session_state:
     st.session_state.yard_line = 25
-
 if "yards_to_go" not in st.session_state:
     st.session_state.yards_to_go = 10
-
 if "down" not in st.session_state:
     st.session_state.down = 1
 
@@ -175,17 +172,73 @@ Defense rolls **12** → Pick Six, **11** → Sack, **10** → Swatted Pass
     if prompt_clean == "roll" and st.session_state.game_mode:
         player_dice, user_roll, ai_dice, ai_roll = roll_dice()
         with st.chat_message("assistant"):
+
             animate_dice(player_dice, "You")
             time.sleep(0.5)
             animate_dice(ai_dice, "Defense")
 
-            st.write(f"📊 You rolled a total of **{user_roll}**")
-            st.write(f"📊 Defense rolled a total of **{ai_roll}**")
-
             # -----------------------------
-            # USER TOUCHDOWN / VICTORY DISPLAY
+            # DETERMINE PLAY RESULT
             # -----------------------------
             if user_roll == 12 or st.session_state.yard_line + calculate_yards(user_roll) >= 100:
+                play_result = "🏈 TOUCHDOWN! YOU WIN!"
+            elif user_roll == 2:
+                play_result = "❌ Interception! Game Over."
+            elif ai_roll == 12 and user_roll != 12:
+                play_result = "💥 Pick Six! Defense scores! You lose."
+            elif ai_roll == 11 and user_roll != 12:
+                play_result = "🛑 Sack! Lost 10 yards."
+            elif ai_roll == 10 and user_roll not in [11,12]:
+                play_result = "🖐 Swatted pass! No gain."
+            elif user_roll > ai_roll:
+                play_result = "📈 Gain on the play!"
+            else:
+                play_result = "No gain on the play!"
+
+            # -----------------------------
+            # APPLY YARDS
+            # -----------------------------
+            if user_roll > ai_roll and ai_roll not in [10,11,12]:
+                yards = calculate_yards(user_roll)
+                st.session_state.yard_line += yards
+                st.session_state.yards_to_go -= yards
+            elif ai_roll == 11:
+                st.session_state.yard_line -= 10
+
+            # -----------------------------
+            # FIRST DOWN
+            # -----------------------------
+            if st.session_state.yards_to_go <= 0:
+                st.session_state.down = 1
+                st.session_state.yards_to_go = 10
+                first_down_text = "✅ First Down!"
+            else:
+                st.session_state.down += 1
+                first_down_text = ""
+
+            # -----------------------------
+            # TURNOVER ON DOWNS
+            # -----------------------------
+            if st.session_state.down > 4:
+                st.session_state.game_mode = False
+                play_result = "❌ Turnover on downs! Drive failed."
+
+            # -----------------------------
+            # DISPLAY PLAY RESULT FORMATTED
+            # -----------------------------
+            st.markdown(f"**{play_result}**\n\n"
+                        f"🏈 You rolled: {user_roll}\n\n"
+                        f"🛡 Defense rolled: {ai_roll}\n\n"
+                        f"📍 Ball is now on: {display_yard_line(st.session_state.yard_line)}\n\n"
+                        f"Down: {st.session_state.down} & {st.session_state.yards_to_go}")
+
+            if first_down_text:
+                st.markdown(f"**{first_down_text}**")
+
+            # -----------------------------
+            # TOUCHDOWN VICTORY SCREEN
+            # -----------------------------
+            if user_roll == 12 or st.session_state.yard_line >= 100:
                 st.session_state.game_mode = False
                 st.balloons()
                 st.markdown("""
@@ -194,52 +247,6 @@ Defense rolls **12** → Pick Six, **11** → Sack, **10** → Swatted Pass
                 """, unsafe_allow_html=True)
                 st.image("trophy.png", width=300)
                 st.stop()
-
-            # INTERCEPTION
-            if user_roll == 2:
-                st.write("❌ **Interception! Game Over.**")
-                st.session_state.game_mode = False
-                st.stop()
-
-            # DEFENSE BIG PLAYS
-            if ai_roll == 12 and user_roll != 12:
-                st.write("💥 **Pick Six! Defense scores! You lose.**")
-                st.session_state.game_mode = False
-                st.stop()
-            if ai_roll == 11 and user_roll != 12:
-                st.write("🛑 Sack! You lose 10 yards.")
-                st.session_state.yard_line -= 10
-            elif ai_roll == 10 and user_roll not in [11,12]:
-                st.write("🖐 Swatted pass! No gain.")
-
-            # PLAYER WINS PLAY
-            elif user_roll > ai_roll:
-                yards = calculate_yards(user_roll)
-                st.session_state.yard_line += yards
-                st.session_state.yards_to_go -= yards
-                st.write(f"📈 You gained **{yards} yards!**")
-            else:
-                st.write("No gain on the play.")
-
-            # FIRST DOWN / DOWN INCREMENT
-            if st.session_state.yards_to_go <= 0:
-                st.write("✅ **First Down!**")
-                st.session_state.down = 1
-                st.session_state.yards_to_go = 10
-            else:
-                st.session_state.down += 1
-
-            # TURNOVER ON DOWNS
-            if st.session_state.down > 4:
-                st.write("❌ **Turnover on downs! Drive failed.**")
-                st.session_state.game_mode = False
-                st.stop()
-
-            # -----------------------------
-            # DISPLAY FOOTBALL-STYLE YARD LINE
-            # -----------------------------
-            st.write(f"Ball on the **{display_yard_line(st.session_state.yard_line)}**")
-            st.write(f"Down **{st.session_state.down}** & **{st.session_state.yards_to_go}**")
 
         st.stop()
 
