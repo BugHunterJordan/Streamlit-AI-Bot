@@ -136,8 +136,8 @@ def reset_game():
 # -----------------------------
 # PAGE SETTINGS
 # -----------------------------
-st.set_page_config(page_title="AI Football Chat & Play", page_icon="🏈")
-st.title("AI Football Chat & Play")
+st.set_page_config(page_title="Longshot Dynasty", page_icon="🏈")
+st.title("Longshot Dynasty: Play or Chat")
 
 
 # -----------------------------
@@ -178,7 +178,7 @@ for message in st.session_state.messages:
 # -----------------------------
 # USER INPUT
 # -----------------------------
-if prompt := st.chat_input("Ask the AI or type roll to play Longshot Dynasty"):
+if prompt := st.chat_input("💬 Ask the AI anything or type 'roll' 🏈 to play Longshot Dynasty!"):
 
     with st.chat_message("user"):
         st.markdown(prompt)
