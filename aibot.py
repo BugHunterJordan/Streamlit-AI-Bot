@@ -178,32 +178,32 @@ Defense rolls **12** → Pick Six, **11** → Sack, **10** → Swatted Pass
             animate_dice(ai_dice, "Defense")
 
             # -----------------------------
-            # DETERMINE PLAY RESULT
+            # DETERMINE PLAY RESULT & YARDS
             # -----------------------------
-            if user_roll == 12 or st.session_state.yard_line + calculate_yards(user_roll) >= 100:
-                play_result = "🏈 TOUCHDOWN! YOU WIN!"
+            yards_gained = 0
+            if user_roll > ai_roll and ai_roll not in [10,11,12]:
+                yards_gained = calculate_yards(user_roll)
+                st.session_state.yard_line += yards_gained
+                st.session_state.yards_to_go -= yards_gained
+            elif ai_roll == 11:
+                yards_gained = -10
+                st.session_state.yard_line -= 10
+
+            # Determine play result text
+            if user_roll == 12 or st.session_state.yard_line >= 100:
+                play_result = f"🏈 TOUCHDOWN! YOU WIN! (+{yards_gained} yards)"
             elif user_roll == 2:
-                play_result = "❌ Interception! Game Over."
+                play_result = f"❌ Interception! Game Over. (+{yards_gained} yards)"
             elif ai_roll == 12 and user_roll != 12:
-                play_result = "💥 Pick Six! Defense scores! You lose."
+                play_result = f"💥 Pick Six! Defense scores! You lose. (+{yards_gained} yards)"
             elif ai_roll == 11 and user_roll != 12:
-                play_result = "🛑 Sack! Lost 10 yards."
+                play_result = f"🛑 Sack! Lost 10 yards."
             elif ai_roll == 10 and user_roll not in [11,12]:
-                play_result = "🖐 Swatted pass! No gain."
+                play_result = f"🖐 Swatted pass! No gain."
             elif user_roll > ai_roll:
-                play_result = "📈 Gain on the play!"
+                play_result = f"📈 Gain on the play! (+{yards_gained} yards)"
             else:
                 play_result = "No gain on the play!"
-
-            # -----------------------------
-            # APPLY YARDS
-            # -----------------------------
-            if user_roll > ai_roll and ai_roll not in [10,11,12]:
-                yards = calculate_yards(user_roll)
-                st.session_state.yard_line += yards
-                st.session_state.yards_to_go -= yards
-            elif ai_roll == 11:
-                st.session_state.yard_line -= 10
 
             # -----------------------------
             # FIRST DOWN
@@ -230,7 +230,7 @@ Defense rolls **12** → Pick Six, **11** → Sack, **10** → Swatted Pass
                         f"🏈 You rolled: {user_roll}\n\n"
                         f"🛡 Defense rolled: {ai_roll}\n\n"
                         f"📍 Ball is now on: {display_yard_line(st.session_state.yard_line)}\n\n"
-                        f"Down: {st.session_state.down} & {st.session_state.yards_to_go}")
+                        f"**Down: {st.session_state.down} & {st.session_state.yards_to_go}**")
 
             if first_down_text:
                 st.markdown(f"**{first_down_text}**")
