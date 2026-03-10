@@ -46,7 +46,6 @@ def response_generator():
         data=st.session_state.messages,
         api_key=st.secrets["apikey"]
     )
-
     for word in response.split():
         yield word + " "
         time.sleep(0.04)
@@ -177,9 +176,6 @@ Defense rolls **12** → Pick Six, **11** → Sack, **10** → Swatted Pass
             time.sleep(0.5)
             animate_dice(ai_dice, "Defense")
 
-            # -----------------------------
-            # DETERMINE PLAY RESULT & YARDS
-            # -----------------------------
             yards_gained = 0
             if user_roll > ai_roll and ai_roll not in [10,11,12]:
                 yards_gained = calculate_yards(user_roll)
@@ -189,7 +185,7 @@ Defense rolls **12** → Pick Six, **11** → Sack, **10** → Swatted Pass
                 yards_gained = -10
                 st.session_state.yard_line -= 10
 
-            # Determine play result text
+            # Determine play result
             if user_roll == 12 or st.session_state.yard_line >= 100:
                 play_result = f"🏈 TOUCHDOWN! YOU WIN! (+{yards_gained} yards)"
             elif user_roll == 2:
@@ -206,46 +202,50 @@ Defense rolls **12** → Pick Six, **11** → Sack, **10** → Swatted Pass
                 play_result = "No gain on the play!"
 
             # -----------------------------
-            # FIRST DOWN
+            # FIRST DOWN / TURNOVER
             # -----------------------------
+            first_down_text = ""
+            lost_drive = False
             if st.session_state.yards_to_go <= 0:
                 st.session_state.down = 1
                 st.session_state.yards_to_go = 10
                 first_down_text = "✅ First Down!"
             else:
                 st.session_state.down += 1
-                first_down_text = ""
+                if st.session_state.down > 4:
+                    lost_drive = True
+                    st.session_state.game_mode = False
 
             # -----------------------------
-            # TURNOVER ON DOWNS
-            # -----------------------------
-            if st.session_state.down > 4:
-                st.session_state.game_mode = False
-                play_result = "❌ Turnover on downs! Drive failed."
-
-            # -----------------------------
-            # DISPLAY PLAY RESULT FORMATTED
+            # DISPLAY RESULTS
             # -----------------------------
             st.markdown(f"**{play_result}**\n\n"
                         f"🏈 You rolled: {user_roll}\n\n"
                         f"🛡 Defense rolled: {ai_roll}\n\n"
                         f"📍 Ball is now on: {display_yard_line(st.session_state.yard_line)}\n\n"
                         f"**Down: {st.session_state.down} & {st.session_state.yards_to_go}**")
-
             if first_down_text:
                 st.markdown(f"**{first_down_text}**")
 
             # -----------------------------
-            # TOUCHDOWN VICTORY SCREEN
+            # TOUCHDOWN
             # -----------------------------
             if user_roll == 12 or st.session_state.yard_line >= 100:
-                st.session_state.game_mode = False
                 st.balloons()
                 st.markdown("""
                 <h1 style='text-align:center; color: gold; font-size: 80px;'>🏆 YOU WON!!!! 🏆</h1>
                 <h2 style='text-align:center; font-size:40px;'>Here's your trophy:</h2>
                 """, unsafe_allow_html=True)
                 st.image("trophy.png", width=300)
+                st.stop()
+
+            # -----------------------------
+            # LOST DRIVE
+            # -----------------------------
+            if lost_drive:
+                st.markdown("""
+                <h1 style='text-align:center; color:red; font-size:70px;'>💀 YOU'VE LOST! PLEASE TRY AGAIN 💀</h1>
+                """, unsafe_allow_html=True)
                 st.stop()
 
         st.stop()
