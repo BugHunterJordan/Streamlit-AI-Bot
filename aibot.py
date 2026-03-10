@@ -82,25 +82,17 @@ def calculate_yards(roll):
 # DICE ANIMATION
 # -----------------------------
 def animate_dice(final_rolls, label, dice_type="user", width=60, speed=0.1, frames=6):
-
     st.write(f"🎲 {label} rolled:")
     cols = st.columns(len(final_rolls))
-
     for i, final_value in enumerate(final_rolls):
-
         placeholder = cols[i].empty()
-
         for _ in range(frames):
-
             rand_val = random.randint(1,6)
-
             if dice_type == "user":
                 placeholder.image(f"userdice{rand_val}.png", width=width)
             else:
                 placeholder.image(f"aidice{rand_val}.png", width=width)
-
             time.sleep(speed)
-
         if dice_type == "user":
             placeholder.image(f"userdice{final_value}.png", width=width)
         else:
@@ -111,9 +103,7 @@ def animate_dice(final_rolls, label, dice_type="user", width=60, speed=0.1, fram
 # FOOTBALL FIELD
 # -----------------------------
 def draw_field(yard_line):
-
     yard = max(0, min(100, yard_line))
-
     st.markdown(
         f"""
         <div style="
@@ -127,7 +117,6 @@ def draw_field(yard_line):
         margin-bottom:10px;
         overflow:hidden;
         ">
-
         <div style="
         position:absolute;
         left:{yard}%;
@@ -138,7 +127,6 @@ def draw_field(yard_line):
         ">
         🏈
         </div>
-
         <div style="
         position:absolute;
         bottom:5px;
@@ -148,7 +136,6 @@ def draw_field(yard_line):
         font-size:12px;">
         0 | 10 | 20 | 30 | 40 | 50 | 40 | 30 | 20 | 10 | 100
         </div>
-
         </div>
         """,
         unsafe_allow_html=True
@@ -159,7 +146,6 @@ def draw_field(yard_line):
 # YARD LINE DISPLAY
 # -----------------------------
 def display_yard_line(yard_line):
-
     if yard_line < 50:
         return f"your {yard_line} yard line"
     elif yard_line == 50:
@@ -174,7 +160,6 @@ def display_yard_line(yard_line):
 # RESET GAME
 # -----------------------------
 def reset_game():
-
     st.session_state.game_mode = False
     st.session_state.yard_line = 25
     st.session_state.yards_to_go = 10
@@ -186,6 +171,7 @@ def reset_game():
 # -----------------------------
 st.set_page_config(page_title="Longshot Dynasty", page_icon="🏈")
 st.title("Longshot Dynasty: Play or Chat")
+
 
 # -----------------------------
 # SESSION STATE
@@ -211,72 +197,40 @@ if "down" not in st.session_state:
 # -----------------------------
 st.image("logo.png", caption="Own your ai opponent")
 
+
 # -----------------------------
 # DISPLAY CHAT HISTORY
 # -----------------------------
 for message in st.session_state.messages:
-
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-# -----------------------------
-# STICKY INPUT BAR (BOTTOM)
-# -----------------------------
-st.markdown(
-    """
-    <style>
-    .stChatInput>div{position:fixed; bottom:0; width:100%; background:white; padding:5px; z-index:99;}
-    .stApp {padding-bottom:80px;}
-    </style>
-    """,
-    unsafe_allow_html=True
-)
-
-col1, col2 = st.columns([5,1])
-
-with col1:
-    prompt = st.chat_input("🏈 Type 'roll' to play, or ask AI 💬")
-
-with col2:
-    roll_clicked = st.button("🎲 Roll")
-
-if roll_clicked:
-    prompt = "roll"
 
 # -----------------------------
-# USER INPUT
+# HANDLE USER INPUT & GAME LOGIC
 # -----------------------------
-if prompt:
+def game_step(prompt_text):
+    prompt_clean = prompt_text.strip().lower()
 
-    with st.chat_message("user"):
-        st.markdown(prompt)
-
-    st.session_state.messages.append({"role": "user", "content": prompt})
-
-    prompt_clean = prompt.strip().lower()
-
-    # -----------------------------
     # START GAME
-    # -----------------------------
     if prompt_clean == "roll" and not st.session_state.game_mode:
-
         st.session_state.game_mode = True
-
         with st.chat_message("assistant"):
-
             st.markdown("""
 ### 🏈 Welcome to Longshot Dynasty!
 
 You are the offense and the AI controls the defense.
 
-Your drive starts on the **25 yard line**, goal: **75 yards for a touchdown**.
+Your drive starts on the **25 yard line**, and your goal is to move the ball **75 yards for a touchdown.**
 
 ### Rules
 
 • 4 downs to gain 10 yards  
-• Gain 10 yards → new first down  
+• If you gain 10 yards, you earn a **new first down**  
 • Fail to gain 10 yards in 4 plays → drive ends  
-• **Must outroll opponent to gain yards**
+• **You must outroll your opponent to gain yards on the play.**
+
+Type **roll** to roll dice.
 
 Special rolls:
 
@@ -288,19 +242,13 @@ Defense rolls:
 **11** → Sack  
 **10** → Swatted Pass
 """)
-
         draw_field(st.session_state.yard_line)
         st.stop()
 
-    # -----------------------------
     # GAME PLAY
-    # -----------------------------
     if prompt_clean == "roll" and st.session_state.game_mode:
-
         player_dice, user_roll, ai_dice, ai_roll = roll_dice()
-
         with st.chat_message("assistant"):
-
             draw_field(st.session_state.yard_line)
             animate_dice(player_dice, "You", "user")
             time.sleep(0.5)
@@ -333,7 +281,6 @@ Defense rolls:
 
             first_down_text = ""
             lost_drive = False
-
             if st.session_state.yards_to_go <= 0:
                 st.session_state.down = 1
                 st.session_state.yards_to_go = 10
@@ -367,10 +314,26 @@ Defense rolls:
                 reset_game()
                 st.stop()
 
-    # -----------------------------
-    # NORMAL AI CHAT
-    # -----------------------------
-    if not st.session_state.game_mode:
-        with st.chat_message("assistant"):
-            response = st.write_stream(response_generator())
-        st.session_state.messages.append({"role": "assistant", "content": response})
+
+# -----------------------------
+# DISPLAY INPUT AFTER PLAY INFO
+# -----------------------------
+prompt = st.chat_input("🏈 Type 'roll' to play, or ask AI 💬")
+roll_clicked = st.button("🎲 Roll")
+
+if roll_clicked:
+    prompt = "roll"
+
+if prompt:
+    with st.chat_message("user"):
+        st.markdown(prompt)
+    st.session_state.messages.append({"role": "user", "content": prompt})
+    game_step(prompt)
+
+# -----------------------------
+# NORMAL AI CHAT
+# -----------------------------
+if not st.session_state.game_mode and not prompt:
+    with st.chat_message("assistant"):
+        response = st.write_stream(response_generator())
+    st.session_state.messages.append({"role": "assistant", "content": response})
