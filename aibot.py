@@ -14,12 +14,12 @@ st.set_page_config(page_title="AI Football Chat & Play", page_icon="🏈")
 # -----------------------------
 st.markdown("""
 <style>
-.roll-button img{
+.roll-btn img {
     width: 120px;
     cursor: pointer;
     transition: transform 0.08s ease;
 }
-.roll-button img:active{
+.roll-btn img:active {
     transform: scale(0.9);
 }
 </style>
@@ -28,7 +28,11 @@ st.markdown("""
 # -----------------------------
 # AI API FUNCTION
 # -----------------------------
-def ai_ask(prompt, data=None, temperature=0.5, max_tokens=250, model="mistral-small-latest", api_key=None, api_url="https://api.mistral.ai/v1/chat/completions"):
+def ai_ask(prompt, data=None, temperature=0.5, max_tokens=250,
+           model="mistral-small-latest",
+           api_key=None,
+           api_url="https://api.mistral.ai/v1/chat/completions"):
+
     if api_key is None or api_url is None:
         return "API key missing."
 
@@ -59,7 +63,7 @@ def ai_ask(prompt, data=None, temperature=0.5, max_tokens=250, model="mistral-sm
         return f"Error: {str(e)}"
 
 # -----------------------------
-# STREAMING RESPONSE
+# STREAM RESPONSE
 # -----------------------------
 def response_generator():
     response = ai_ask(
@@ -141,21 +145,30 @@ for m in st.session_state.messages:
         st.markdown(m["content"])
 
 # -----------------------------
-# ROLL BUTTON IMAGE (CLICKABLE)
+# FUNCTION FOR CLICKABLE ROLL BUTTON
 # -----------------------------
-roll_clicked = False
-with st.form(key="roll_form"):
-    submit = st.form_submit_button("")
-    # render image inside form
-    st.markdown('<div class="roll-button"><button type="submit"><img src="roll.png"></button></div>', unsafe_allow_html=True)
-    if submit:
-        roll_clicked = True
+def roll_button():
+    clicked = False
+    # HTML form button
+    button_html = """
+    <form action="" method="get">
+        <button type="submit" name="roll" value="1" style="all:unset;">
+            <img src="roll.png">
+        </button>
+    </form>
+    """
+    st.markdown(button_html, unsafe_allow_html=True)
+    query_params = st.experimental_get_query_params()
+    if "roll" in query_params:
+        clicked = True
+        st.experimental_set_query_params()  # clear for next click
+    return clicked
 
 # -----------------------------
 # CHAT INPUT
 # -----------------------------
 prompt = st.chat_input("Ask the AI or type roll to play Longshot Dynasty")
-if roll_clicked:
+if roll_button():
     prompt = "roll"
 
 # -----------------------------
@@ -225,7 +238,13 @@ Start on the **25 yard line**. Score a **touchdown**.
                     reset_game()
                     st.stop()
 
+            # Display result
             st.markdown(f"🏈 You rolled: {ur}\n🛡 Defense rolled: {ar}\n📍 Ball: {display_yard_line(st.session_state.yard_line)}\nDown: {st.session_state.down} & {st.session_state.yards_to_go}")
+
+            # SHOW ROLL BUTTON AGAIN
+            if roll_button():
+                prompt = "roll"
+                st.experimental_rerun()
 
     # NORMAL AI CHAT
     if not st.session_state.game_mode:
