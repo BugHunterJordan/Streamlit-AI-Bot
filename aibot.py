@@ -178,7 +178,8 @@ for message in st.session_state.messages:
 # -----------------------------
 # USER INPUT
 # -----------------------------
-if prompt := st.chat_input("💬 Ask the AI anything or type 'roll' 🏈 to play Longshot Dynasty!"):
+if prompt := st.chat_input("🏈 Type 'roll' to play Longshot Dynasty, or ask the AI a question 💬")
+prompt = st.chat_input("Start typing here...")"):
 
     with st.chat_message("user"):
         st.markdown(prompt)
