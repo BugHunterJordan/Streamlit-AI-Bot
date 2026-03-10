@@ -100,6 +100,15 @@ def display_yard_line(yard_line):
         return "Touchdown!"
 
 # -----------------------------
+# RESET GAME FUNCTION
+# -----------------------------
+def reset_game():
+    st.session_state.game_mode = False
+    st.session_state.yard_line = 25
+    st.session_state.yards_to_go = 10
+    st.session_state.down = 1
+
+# -----------------------------
 # PAGE SETTINGS
 # -----------------------------
 st.set_page_config(page_title="AI Football Chat & Play", page_icon="🏈")
@@ -157,6 +166,7 @@ Your drive starts on the **25 yard line**, and your goal is to move the ball **7
 • 4 downs to gain 10 yards  
 • If you gain 10 yards, you earn a **new first down**  
 • Fail to gain 10 yards in 4 plays → drive ends  
+• **You must outroll your opponent to gain yards on the play.**
 
 Type **roll** to roll dice. Special rolls:
 **12** → Automatic TD  
@@ -237,6 +247,7 @@ Defense rolls **12** → Pick Six, **11** → Sack, **10** → Swatted Pass
                 <h2 style='text-align:center; font-size:40px;'>Here's your trophy:</h2>
                 """, unsafe_allow_html=True)
                 st.image("trophy.png", width=300)
+                reset_game()  # reset game after win
                 st.stop()
 
             # -----------------------------
@@ -246,6 +257,7 @@ Defense rolls **12** → Pick Six, **11** → Sack, **10** → Swatted Pass
                 st.markdown("""
                 <h1 style='text-align:center; color:red; font-size:70px;'>💀 YOU'VE LOST! PLEASE TRY AGAIN 💀</h1>
                 """, unsafe_allow_html=True)
+                reset_game()  # reset game after loss
                 st.stop()
 
         st.stop()
